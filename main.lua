@@ -1,8 +1,8 @@
---=================================
--- DEALTA HUB V3 (ALL-IN-ONE FIXED)
--- Fly • Speed • Jump • FPS/Ping
--- Mobile + PC • Respawn Safe
---=================================
+--====================================================
+-- DEALTA HUB V3 — ALL IN ONE (FINAL FIXED)
+-- Fly • Speed • Jump • Teleport • FPS/Ping
+-- Mobile + PC • R6 + R15 • Respawn Safe
+--====================================================
 
 -- SERVICES
 local Players = game:GetService("Players")
@@ -25,9 +25,9 @@ end
 loadChar(LP.Character or LP.CharacterAdded:Wait())
 LP.CharacterAdded:Connect(loadChar)
 
---=================================
+--====================================================
 -- STATES
---=================================
+--====================================================
 local FLY = false
 local SPEED = false
 local JUMP = false
@@ -37,9 +37,9 @@ local FLY_SPEED = 60
 local SPEED_VALUE = 32
 local JUMP_VALUE = 90
 
---=================================
+--====================================================
 -- GUI
---=================================
+--====================================================
 local gui = Instance.new("ScreenGui", LP.PlayerGui)
 gui.Name = "DealtaHubV3"
 gui.ResetOnSpawn = false
@@ -57,8 +57,8 @@ Instance.new("UICorner", openBtn).CornerRadius = UDim.new(1,0)
 
 -- MAIN PANEL
 local main = Instance.new("Frame", gui)
-main.Size = UDim2.fromScale(0.3,0.55)
-main.Position = UDim2.fromScale(-0.35,0.22)
+main.Size = UDim2.fromScale(0.3,0.6)
+main.Position = UDim2.fromScale(-0.35,0.2)
 main.BackgroundColor3 = Color3.fromRGB(25,25,25)
 main.Active = true
 main.Draggable = true
@@ -105,6 +105,7 @@ end
 local flyBtn = makeBtn("Fly")
 local speedBtn = makeBtn("Speed")
 local jumpBtn = makeBtn("Jump")
+local tpBtn = makeBtn("Teleport +10")
 local statsBtn = makeBtn("FPS / Ping")
 
 local function glow(btn,on)
@@ -113,71 +114,89 @@ local function glow(btn,on)
 	):Play()
 end
 
---=================================
--- FLY (MODERN / STABLE)
---=================================
-local lv, ao
+--====================================================
+-- FLY (R6 + R15 SAFE)
+--====================================================
+local flying = false
+local lv, ao, att
+
+local function startFly()
+	if not HRP then return end
+	att = Instance.new("Attachment", HRP)
+
+	lv = Instance.new("LinearVelocity", HRP)
+	lv.Attachment0 = att
+	lv.MaxForce = math.huge
+
+	ao = Instance.new("AlignOrientation", HRP)
+	ao.Attachment0 = att
+	ao.MaxTorque = math.huge
+	ao.Responsiveness = 30
+end
 
 local function stopFly()
 	if lv then lv:Destroy() lv = nil end
 	if ao then ao:Destroy() ao = nil end
+	if att then att:Destroy() att = nil end
 end
 
 flyBtn.MouseButton1Click:Connect(function()
-	FLY = not FLY
-	flyBtn.Text = "Fly : "..(FLY and "ON" or "OFF")
-	glow(flyBtn,FLY)
-	if not FLY then stopFly() end
+	flying = not flying
+	flyBtn.Text = "Fly : "..(flying and "ON" or "OFF")
+	glow(flyBtn,flying)
+
+	if flying then
+		startFly()
+	else
+		stopFly()
+	end
 end)
 
 RunService.RenderStepped:Connect(function()
-	if not FLY or not HRP then return end
-
-	if not lv then
-		lv = Instance.new("LinearVelocity", HRP)
-		lv.Attachment0 = HRP.RootRigAttachment
-		lv.MaxForce = math.huge
-
-		ao = Instance.new("AlignOrientation", HRP)
-		ao.Attachment0 = HRP.RootRigAttachment
-		ao.MaxTorque = math.huge
-		ao.Responsiveness = 25
-	end
-
-	ao.CFrame = workspace.CurrentCamera.CFrame
-	lv.VectorVelocity = workspace.CurrentCamera.CFrame.LookVector * FLY_SPEED
-	Hum:ChangeState(Enum.HumanoidStateType.Physics)
+	if not flying or not lv or not HRP then return end
+	local cam = workspace.CurrentCamera
+	ao.CFrame = cam.CFrame
+	lv.VectorVelocity = cam.CFrame.LookVector * FLY_SPEED
 end)
 
---=================================
+--====================================================
 -- SPEED (ANTI RESET)
---=================================
+--====================================================
 speedBtn.MouseButton1Click:Connect(function()
 	SPEED = not SPEED
 	speedBtn.Text = "Speed : "..(SPEED and "ON" or "OFF")
 	glow(speedBtn,SPEED)
 end)
 
---=================================
--- JUMP (FORCED)
---=================================
+--====================================================
+-- JUMP
+--====================================================
 jumpBtn.MouseButton1Click:Connect(function()
 	JUMP = not JUMP
 	jumpBtn.Text = "Jump : "..(JUMP and "ON" or "OFF")
 	glow(jumpBtn,JUMP)
 end)
 
--- LOCK VALUES
-RunService.Stepped:Connect(function()
+RunService.Heartbeat:Connect(function()
 	if Hum then
 		Hum.WalkSpeed = SPEED and SPEED_VALUE or 16
 		Hum.JumpPower = JUMP and JUMP_VALUE or 50
 	end
 end)
 
---=================================
+--====================================================
+-- TELEPORT +10 STUDS
+--====================================================
+tpBtn.MouseButton1Click:Connect(function()
+	if HRP then
+		local cam = workspace.CurrentCamera
+		HRP.CFrame = HRP.CFrame + (cam.CFrame.LookVector * 10)
+	end
+end)
+
+--====================================================
 -- FPS / PING
---=================================
+--====================================================
 local overlay = Instance.new("TextLabel", gui)
 overlay.Size = UDim2.fromScale(0.18,0.08)
 overlay.Position = UDim2.fromScale(0.4,0.05)
@@ -205,14 +224,14 @@ RunService.RenderStepped:Connect(function(dt)
 	end
 end)
 
---=================================
+--====================================================
 -- OPEN / CLOSE
---=================================
+--====================================================
 local open = false
 local function toggle()
 	open = not open
 	TweenService:Create(main,TweenInfo.new(0.4,Enum.EasingStyle.Quint),
-		{Position = open and UDim2.fromScale(0.05,0.22) or UDim2.fromScale(-0.35,0.22)}
+		{Position = open and UDim2.fromScale(0.05,0.2) or UDim2.fromScale(-0.35,0.2)}
 	):Play()
 end
 
