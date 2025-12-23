@@ -1,31 +1,50 @@
--- DEALTA HUB V3 (LEGIT)
--- Gradient UI + FPS/Ping + Admin Check
+--=================================
+-- DEALTA HUB V3 (ALL-IN-ONE FIXED)
+-- Fly • Speed • Jump • FPS/Ping
+-- Mobile + PC • Respawn Safe
+--=================================
 
+-- SERVICES
 local Players = game:GetService("Players")
-local UIS = game:GetService("UserInputService")
-local RS = game:GetService("RunService")
+local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
-local TeleportService = game:GetService("TeleportService")
+local UIS = game:GetService("UserInputService")
 local Stats = game:GetService("Stats")
 
-local player = Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local hum = char:WaitForChild("Humanoid")
-local hrp = char:WaitForChild("HumanoidRootPart")
+-- PLAYER
+local LP = Players.LocalPlayer
+local Char, Hum, HRP
 
--- ===== ADMIN LIST =====
-local ADMINS = {
-	[player.UserId] = true -- replace with your UserId
-}
+local function loadChar(c)
+	Char = c
+	Hum = c:WaitForChild("Humanoid")
+	HRP = c:WaitForChild("HumanoidRootPart")
+	Hum.UseJumpPower = true
+end
 
-local isAdmin = ADMINS[player.UserId] or game.CreatorId == player.UserId
+loadChar(LP.Character or LP.CharacterAdded:Wait())
+LP.CharacterAdded:Connect(loadChar)
 
--- ================= GUI =================
-local gui = Instance.new("ScreenGui", player.PlayerGui)
-gui.Name = "DealtaV3"
+--=================================
+-- STATES
+--=================================
+local FLY = false
+local SPEED = false
+local JUMP = false
+local SHOW_STATS = false
+
+local FLY_SPEED = 60
+local SPEED_VALUE = 32
+local JUMP_VALUE = 90
+
+--=================================
+-- GUI
+--=================================
+local gui = Instance.new("ScreenGui", LP.PlayerGui)
+gui.Name = "DealtaHubV3"
 gui.ResetOnSpawn = false
 
--- OPEN BUTTON (MOBILE)
+-- OPEN BUTTON
 local openBtn = Instance.new("TextButton", gui)
 openBtn.Size = UDim2.fromScale(0.12,0.08)
 openBtn.Position = UDim2.fromScale(0.85,0.75)
@@ -40,7 +59,7 @@ Instance.new("UICorner", openBtn).CornerRadius = UDim.new(1,0)
 local main = Instance.new("Frame", gui)
 main.Size = UDim2.fromScale(0.3,0.55)
 main.Position = UDim2.fromScale(-0.35,0.22)
-main.BorderSizePixel = 0
+main.BackgroundColor3 = Color3.fromRGB(25,25,25)
 main.Active = true
 main.Draggable = true
 Instance.new("UICorner", main).CornerRadius = UDim.new(0,16)
@@ -52,7 +71,7 @@ grad.Color = ColorSequence.new{
 	ColorSequenceKeypoint.new(1, Color3.fromRGB(120,0,255))
 }
 
-RS.RenderStepped:Connect(function()
+RunService.RenderStepped:Connect(function()
 	grad.Rotation += 0.1
 end)
 
@@ -69,9 +88,9 @@ local layout = Instance.new("UIListLayout", main)
 layout.Padding = UDim.new(0,10)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
--- ================= BUTTON MAKER =================
+-- BUTTON MAKER
 local function makeBtn(text)
-	local b = Instance.new("TextButton")
+	local b = Instance.new("TextButton", main)
 	b.Size = UDim2.new(0.9,0,0.085,0)
 	b.Text = text.." : OFF"
 	b.Font = Enum.Font.Gotham
@@ -79,7 +98,6 @@ local function makeBtn(text)
 	b.TextColor3 = Color3.new(1,1,1)
 	b.BackgroundColor3 = Color3.fromRGB(35,35,35)
 	b.AutoButtonColor = false
-	b.Parent = main
 	Instance.new("UICorner", b).CornerRadius = UDim.new(0,10)
 	return b
 end
@@ -87,60 +105,79 @@ end
 local flyBtn = makeBtn("Fly")
 local speedBtn = makeBtn("Speed")
 local jumpBtn = makeBtn("Jump")
-local fpsBtn = makeBtn("FPS / Ping")
+local statsBtn = makeBtn("FPS / Ping")
 
-local resetBtn = makeBtn("Reset (Admin)")
-local healBtn = makeBtn("Heal (Admin)")
-
--- ================= ANIMATION =================
 local function glow(btn,on)
 	TweenService:Create(btn,TweenInfo.new(0.25),
 		{BackgroundColor3 = on and Color3.fromRGB(0,170,255) or Color3.fromRGB(35,35,35)}
 	):Play()
 end
 
--- ================= FEATURES =================
--- Fly
-local flying = false
-local bv
+--=================================
+-- FLY (MODERN / STABLE)
+--=================================
+local lv, ao
+
+local function stopFly()
+	if lv then lv:Destroy() lv = nil end
+	if ao then ao:Destroy() ao = nil end
+end
+
 flyBtn.MouseButton1Click:Connect(function()
-	flying = not flying
-	flyBtn.Text = "Fly : "..(flying and "ON" or "OFF")
-	glow(flyBtn,flying)
-
-	if flying then
-		bv = Instance.new("BodyVelocity", hrp)
-		bv.MaxForce = Vector3.new(1e5,1e5,1e5)
-	else
-		if bv then bv:Destroy() end
-	end
+	FLY = not FLY
+	flyBtn.Text = "Fly : "..(FLY and "ON" or "OFF")
+	glow(flyBtn,FLY)
+	if not FLY then stopFly() end
 end)
 
-RS.RenderStepped:Connect(function()
-	if flying and bv then
-		bv.Velocity = workspace.CurrentCamera.CFrame.LookVector * 50
+RunService.RenderStepped:Connect(function()
+	if not FLY or not HRP then return end
+
+	if not lv then
+		lv = Instance.new("LinearVelocity", HRP)
+		lv.Attachment0 = HRP.RootRigAttachment
+		lv.MaxForce = math.huge
+
+		ao = Instance.new("AlignOrientation", HRP)
+		ao.Attachment0 = HRP.RootRigAttachment
+		ao.MaxTorque = math.huge
+		ao.Responsiveness = 25
 	end
+
+	ao.CFrame = workspace.CurrentCamera.CFrame
+	lv.VectorVelocity = workspace.CurrentCamera.CFrame.LookVector * FLY_SPEED
+	Hum:ChangeState(Enum.HumanoidStateType.Physics)
 end)
 
--- Speed
-local speed = false
+--=================================
+-- SPEED (ANTI RESET)
+--=================================
 speedBtn.MouseButton1Click:Connect(function()
-	speed = not speed
-	speedBtn.Text = "Speed : "..(speed and "ON" or "OFF")
-	glow(speedBtn,speed)
-	hum.WalkSpeed = speed and 32 or 16
+	SPEED = not SPEED
+	speedBtn.Text = "Speed : "..(SPEED and "ON" or "OFF")
+	glow(speedBtn,SPEED)
 end)
 
--- Jump
-local jump = false
+--=================================
+-- JUMP (FORCED)
+--=================================
 jumpBtn.MouseButton1Click:Connect(function()
-	jump = not jump
-	jumpBtn.Text = "Jump : "..(jump and "ON" or "OFF")
-	glow(jumpBtn,jump)
-	hum.JumpPower = jump and 85 or 50
+	JUMP = not JUMP
+	jumpBtn.Text = "Jump : "..(JUMP and "ON" or "OFF")
+	glow(jumpBtn,JUMP)
 end)
 
--- ================= FPS / PING OVERLAY =================
+-- LOCK VALUES
+RunService.Stepped:Connect(function()
+	if Hum then
+		Hum.WalkSpeed = SPEED and SPEED_VALUE or 16
+		Hum.JumpPower = JUMP and JUMP_VALUE or 50
+	end
+end)
+
+--=================================
+-- FPS / PING
+--=================================
 local overlay = Instance.new("TextLabel", gui)
 overlay.Size = UDim2.fromScale(0.18,0.08)
 overlay.Position = UDim2.fromScale(0.4,0.05)
@@ -153,32 +190,24 @@ overlay.Active = true
 overlay.Draggable = true
 Instance.new("UICorner", overlay).CornerRadius = UDim.new(0,10)
 
-local showStats = false
-fpsBtn.MouseButton1Click:Connect(function()
-	showStats = not showStats
-	overlay.Visible = showStats
-	fpsBtn.Text = "FPS / Ping : "..(showStats and "ON" or "OFF")
-	glow(fpsBtn,showStats)
+statsBtn.MouseButton1Click:Connect(function()
+	SHOW_STATS = not SHOW_STATS
+	overlay.Visible = SHOW_STATS
+	statsBtn.Text = "FPS / Ping : "..(SHOW_STATS and "ON" or "OFF")
+	glow(statsBtn,SHOW_STATS)
 end)
 
-RS.RenderStepped:Connect(function(dt)
-	if showStats then
+RunService.RenderStepped:Connect(function(dt)
+	if SHOW_STATS then
 		local fps = math.floor(1/dt)
 		local ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
 		overlay.Text = "FPS: "..fps.." | Ping: "..ping.." ms"
 	end
 end)
 
--- ================= ADMIN TOOLS =================
-resetBtn.MouseButton1Click:Connect(function()
-	if isAdmin then hum.Health = 0 end
-end)
-
-healBtn.MouseButton1Click:Connect(function()
-	if isAdmin then hum.Health = hum.MaxHealth end
-end)
-
--- ================= OPEN / CLOSE =================
+--=================================
+-- OPEN / CLOSE
+--=================================
 local open = false
 local function toggle()
 	open = not open
@@ -188,8 +217,8 @@ local function toggle()
 end
 
 openBtn.MouseButton1Click:Connect(toggle)
-UIS.InputBegan:Connect(function(i,gp)
-	if not gp and i.KeyCode == Enum.KeyCode.RightShift then
+UIS.InputBegan:Connect(function(i,g)
+	if not g and i.KeyCode == Enum.KeyCode.RightShift then
 		toggle()
 	end
 end)
