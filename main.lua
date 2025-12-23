@@ -1,7 +1,7 @@
---==============================
--- UTILITY HUB (ALL IN ONE)
+--====================================
+-- UTILITY HUB | ALL IN ONE
 -- Made by mrhackerdon
---==============================
+--====================================
 
 -- Services
 local Players = game:GetService("Players")
@@ -22,33 +22,28 @@ LP.CharacterAdded:Connect(function(c)
 	HRP = c:WaitForChild("HumanoidRootPart")
 end)
 
---==============================
+--====================================
 -- SETTINGS
---==============================
+--====================================
 local Fly = false
 local FlySpeed = 60
 
-local SpeedBoost = false
-local WalkSpeedValue = 32
+local SpeedOn = false
+local WalkSpeed = 32
 
-local JumpBoost = false
-local JumpPowerValue = 85
+local JumpOn = false
+local JumpPower = 85
 
--- Coordinate Slots
-local Slots = {
-	[1] = nil,
-	[2] = nil,
-	[3] = nil
-}
+-- Coord Slots (Vector3 only)
+local Slots = {nil,nil,nil}
 
---==============================
+--====================================
 -- GUI
---==============================
+--====================================
 local gui = Instance.new("ScreenGui", LP.PlayerGui)
 gui.Name = "UtilityHub"
 gui.ResetOnSpawn = false
 
--- Open Button
 local openBtn = Instance.new("TextButton", gui)
 openBtn.Size = UDim2.fromScale(0.12,0.08)
 openBtn.Position = UDim2.fromScale(0.85,0.75)
@@ -57,19 +52,16 @@ openBtn.Font = Enum.Font.GothamBold
 openBtn.TextSize = 26
 openBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
 openBtn.TextColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", openBtn).CornerRadius = UDim.new(1,0)
+Instance.new("UICorner", openBtn)
 
--- Main Frame
 local main = Instance.new("Frame", gui)
-main.Size = UDim2.fromScale(0.3,0.6)
-main.Position = UDim2.fromScale(-0.4,0.2)
+main.Size = UDim2.fromScale(0.32,0.65)
+main.Position = UDim2.fromScale(-0.45,0.2)
 main.BackgroundColor3 = Color3.fromRGB(25,25,25)
-main.BorderSizePixel = 0
 main.Active = true
 main.Draggable = true
-Instance.new("UICorner", main).CornerRadius = UDim.new(0,16)
+Instance.new("UICorner", main)
 
--- Title
 local title = Instance.new("TextLabel", main)
 title.Size = UDim2.new(1,0,0.1,0)
 title.Text = "UTILITY HUB"
@@ -78,32 +70,30 @@ title.TextSize = 18
 title.TextColor3 = Color3.new(1,1,1)
 title.BackgroundTransparency = 1
 
--- Credit
 local credit = Instance.new("TextLabel", main)
-credit.Size = UDim2.new(1,0,0.05,0)
 credit.Position = UDim2.new(0,0,0.1,0)
+credit.Size = UDim2.new(1,0,0.05,0)
 credit.Text = "Made by mrhackerdon"
 credit.Font = Enum.Font.Gotham
 credit.TextSize = 12
-credit.TextColor3 = Color3.fromRGB(170,170,170)
+credit.TextColor3 = Color3.fromRGB(180,180,180)
 credit.BackgroundTransparency = 1
 
--- Scroll
 local scroll = Instance.new("ScrollingFrame", main)
 scroll.Position = UDim2.new(0,0,0.16,0)
 scroll.Size = UDim2.new(1,0,0.84,0)
-scroll.CanvasSize = UDim2.new(0,0,2.2,0)
-scroll.ScrollBarImageTransparency = 0.3
+scroll.CanvasSize = UDim2.new(0,0,2.8,0)
 scroll.BackgroundTransparency = 1
+scroll.ScrollBarImageTransparency = 0.3
 
 local layout = Instance.new("UIListLayout", scroll)
 layout.Padding = UDim.new(0,8)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
---==============================
+--====================================
 -- BUTTON MAKER
---==============================
-local function makeBtn(text, callback)
+--====================================
+local function btn(text, fn)
 	local b = Instance.new("TextButton", scroll)
 	b.Size = UDim2.new(0.9,0,0.08,0)
 	b.Text = text
@@ -111,30 +101,43 @@ local function makeBtn(text, callback)
 	b.TextSize = 14
 	b.TextColor3 = Color3.new(1,1,1)
 	b.BackgroundColor3 = Color3.fromRGB(40,40,40)
-	b.AutoButtonColor = false
-	Instance.new("UICorner", b).CornerRadius = UDim.new(0,10)
+	Instance.new("UICorner", b)
 	b.MouseButton1Click:Connect(function()
-		callback(b)
+		fn(b)
 	end)
 	return b
 end
 
---==============================
--- FEATURES
---==============================
-
--- Fly
-local BV, BG
-makeBtn("Fly : OFF", function(btn)
-	Fly = not Fly
-	btn.Text = "Fly : "..(Fly and "ON" or "OFF")
-end)
-
-makeBtn("Fly Speed +", function() FlySpeed += 10 end)
-makeBtn("Fly Speed -", function() FlySpeed = math.max(20, FlySpeed-10) end)
+--====================================
+-- LIVE COORDS DISPLAY
+--====================================
+local coord = Instance.new("TextLabel", scroll)
+coord.Size = UDim2.new(0.9,0,0.08,0)
+coord.Font = Enum.Font.Gotham
+coord.TextSize = 13
+coord.TextColor3 = Color3.fromRGB(0,255,120)
+coord.BackgroundColor3 = Color3.fromRGB(35,35,35)
+Instance.new("UICorner", coord)
 
 RunService.RenderStepped:Connect(function()
-	if Fly and HRP then
+	local p = HRP.Position
+	coord.Text = string.format("Coords: X %.1f | Y %.1f | Z %.1f",p.X,p.Y,p.Z)
+end)
+
+--====================================
+-- FLY
+--====================================
+local BV,BG
+btn("Fly : OFF", function(b)
+	Fly = not Fly
+	b.Text = "Fly : "..(Fly and "ON" or "OFF")
+end)
+
+btn("Fly Speed +", function() FlySpeed += 10 end)
+btn("Fly Speed -", function() FlySpeed = math.max(20,FlySpeed-10) end)
+
+RunService.RenderStepped:Connect(function()
+	if Fly then
 		if not BV then
 			BV = Instance.new("BodyVelocity", HRP)
 			BV.MaxForce = Vector3.new(1e9,1e9,1e9)
@@ -149,67 +152,64 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 
--- Speed
-makeBtn("Speed Boost", function()
-	SpeedBoost = not SpeedBoost
-	Hum.WalkSpeed = SpeedBoost and WalkSpeedValue or 16
+--====================================
+-- SPEED / JUMP
+--====================================
+btn("Speed Boost", function()
+	SpeedOn = not SpeedOn
+	Hum.WalkSpeed = SpeedOn and WalkSpeed or 16
 end)
 
-makeBtn("Speed +", function()
-	WalkSpeedValue += 5
-	if SpeedBoost then Hum.WalkSpeed = WalkSpeedValue end
+btn("Jump Boost", function()
+	JumpOn = not JumpOn
+	Hum.JumpPower = JumpOn and JumpPower or 50
 end)
 
-makeBtn("Speed -", function()
-	WalkSpeedValue = math.max(16, WalkSpeedValue-5)
-	if SpeedBoost then Hum.WalkSpeed = WalkSpeedValue end
+--====================================
+-- TELEPORT UP / DOWN
+--====================================
+btn("Teleport +10 UP", function()
+	Char:PivotTo(HRP.CFrame + Vector3.new(0,10,0))
 end)
 
--- Jump
-makeBtn("Jump Boost", function()
-	JumpBoost = not JumpBoost
-	Hum.JumpPower = JumpBoost and JumpPowerValue or 50
+btn("Teleport -10 DOWN", function()
+	Char:PivotTo(HRP.CFrame - Vector3.new(0,10,0))
 end)
 
--- Teleport Up / Down
-makeBtn("Teleport +10 Up", function()
-	HRP.CFrame = HRP.CFrame + Vector3.new(0,10,0)
-end)
-
-makeBtn("Teleport -10 Down", function()
-	HRP.CFrame = HRP.CFrame - Vector3.new(0,10,0)
-end)
-
---==============================
--- COORDINATE SLOTS
---==============================
-for i = 1,3 do
-	makeBtn("Save Slot "..i, function()
-		Slots[i] = HRP.CFrame
+--====================================
+-- SLOT COORD SYSTEM
+--====================================
+for i=1,3 do
+	btn("Save Slot "..i, function(b)
+		Slots[i] = HRP.Position
+		b.Text = "Slot "..i.." Saved"
 	end)
 
-	makeBtn("Teleport Slot "..i, function()
+	btn("Teleport Slot "..i, function(b)
 		if Slots[i] then
-			HRP.CFrame = Slots[i]
+			Char:PivotTo(CFrame.new(Slots[i]))
+		else
+			b.Text = "Slot "..i.." EMPTY"
+			task.delay(1,function()
+				b.Text = "Teleport Slot "..i
+			end)
 		end
 	end)
 end
 
---==============================
+--====================================
 -- OPEN / CLOSE
---==============================
-local open = false
+--====================================
+local open=false
 local function toggle()
 	open = not open
-	TweenService:Create(main, TweenInfo.new(0.4,Enum.EasingStyle.Quint),
-		{Position = open and UDim2.fromScale(0.05,0.2) or UDim2.fromScale(-0.4,0.2)}
-	):Play()
+	TweenService:Create(main,TweenInfo.new(0.4,Enum.EasingStyle.Quint),
+	{Position = open and UDim2.fromScale(0.05,0.2) or UDim2.fromScale(-0.45,0.2)}):Play()
 end
 
 openBtn.MouseButton1Click:Connect(toggle)
-
-UIS.InputBegan:Connect(function(i,gp)
-	if not gp and i.KeyCode == Enum.KeyCode.RightShift then
+UIS.InputBegan:Connect(function(i,g)
+	if not g and i.KeyCode==Enum.KeyCode.RightShift then
 		toggle()
 	end
 end)
