@@ -1,5 +1,5 @@
 --====================================
--- UTILITY HUB | ALL IN ONE
+-- UTILITY HUB | FIXED ALL IN ONE
 -- Made by mrhackerdon
 --====================================
 
@@ -11,31 +11,31 @@ local TweenService = game:GetService("TweenService")
 
 -- Player
 local LP = Players.LocalPlayer
-local Char = LP.Character or LP.CharacterAdded:Wait()
-local Hum = Char:WaitForChild("Humanoid")
-local HRP = Char:WaitForChild("HumanoidRootPart")
-local Cam = workspace.CurrentCamera
+local Char, Hum, HRP
 
-LP.CharacterAdded:Connect(function(c)
+local function setupChar(c)
 	Char = c
 	Hum = c:WaitForChild("Humanoid")
 	HRP = c:WaitForChild("HumanoidRootPart")
-end)
+end
+
+setupChar(LP.Character or LP.CharacterAdded:Wait())
+LP.CharacterAdded:Connect(setupChar)
+
+local Cam = workspace.CurrentCamera
 
 --====================================
 -- SETTINGS
 --====================================
 local Fly = false
 local FlySpeed = 60
-
 local SpeedOn = false
 local WalkSpeed = 32
-
 local JumpOn = false
 local JumpPower = 85
 
--- Coord Slots (Vector3 only)
-local Slots = {nil,nil,nil}
+-- Coord slots
+local Slots = {nil, nil, nil}
 
 --====================================
 -- GUI
@@ -82,7 +82,7 @@ credit.BackgroundTransparency = 1
 local scroll = Instance.new("ScrollingFrame", main)
 scroll.Position = UDim2.new(0,0,0.16,0)
 scroll.Size = UDim2.new(1,0,0.84,0)
-scroll.CanvasSize = UDim2.new(0,0,2.8,0)
+scroll.CanvasSize = UDim2.new(0,0,3,0)
 scroll.BackgroundTransparency = 1
 scroll.ScrollBarImageTransparency = 0.3
 
@@ -103,13 +103,13 @@ local function btn(text, fn)
 	b.BackgroundColor3 = Color3.fromRGB(40,40,40)
 	Instance.new("UICorner", b)
 	b.MouseButton1Click:Connect(function()
-		fn(b)
+		if HRP then fn(b) end
 	end)
 	return b
 end
 
 --====================================
--- LIVE COORDS DISPLAY
+-- LIVE COORDS (FIXED)
 --====================================
 local coord = Instance.new("TextLabel", scroll)
 coord.Size = UDim2.new(0.9,0,0.08,0)
@@ -117,15 +117,23 @@ coord.Font = Enum.Font.Gotham
 coord.TextSize = 13
 coord.TextColor3 = Color3.fromRGB(0,255,120)
 coord.BackgroundColor3 = Color3.fromRGB(35,35,35)
+coord.Text = "Coords: Loading..."
 Instance.new("UICorner", coord)
 
-RunService.RenderStepped:Connect(function()
-	local p = HRP.Position
-	coord.Text = string.format("Coords: X %.1f | Y %.1f | Z %.1f",p.X,p.Y,p.Z)
+task.spawn(function()
+	while task.wait(0.1) do
+		if HRP then
+			local p = HRP.Position
+			coord.Text = string.format(
+				"Coords: X %.1f | Y %.1f | Z %.1f",
+				p.X, p.Y, p.Z
+			)
+		end
+	end
 end)
 
 --====================================
--- FLY
+-- MOVEMENT
 --====================================
 local BV,BG
 btn("Fly : OFF", function(b)
@@ -137,7 +145,7 @@ btn("Fly Speed +", function() FlySpeed += 10 end)
 btn("Fly Speed -", function() FlySpeed = math.max(20,FlySpeed-10) end)
 
 RunService.RenderStepped:Connect(function()
-	if Fly then
+	if Fly and HRP then
 		if not BV then
 			BV = Instance.new("BodyVelocity", HRP)
 			BV.MaxForce = Vector3.new(1e9,1e9,1e9)
@@ -152,9 +160,6 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 
---====================================
--- SPEED / JUMP
---====================================
 btn("Speed Boost", function()
 	SpeedOn = not SpeedOn
 	Hum.WalkSpeed = SpeedOn and WalkSpeed or 16
@@ -177,7 +182,7 @@ btn("Teleport -10 DOWN", function()
 end)
 
 --====================================
--- SLOT COORD SYSTEM
+-- SLOT COORD SAVE / TELEPORT (FIXED)
 --====================================
 for i=1,3 do
 	btn("Save Slot "..i, function(b)
