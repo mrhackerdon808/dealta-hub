@@ -1,6 +1,6 @@
 --====================================
--- DEALTA HUB V3 (OLD UI RESTORED)
--- ALL IN ONE | PC + MOBILE
+-- DEALTA HUB V3 (ALL IN ONE FIXED)
+-- OLD UI + SCROLL | PC + MOBILE
 --====================================
 
 -- SERVICES
@@ -27,18 +27,15 @@ end)
 local S = {
 	Fly = false,
 	FlySpeed = 60,
-
 	Speed = false,
 	SpeedValue = 28,
-
 	Jump = false,
 	JumpValue = 70,
-
 	Saved = {}
 }
 
 --====================================
--- GUI (OLD STYLE)
+-- GUI
 --====================================
 local gui = Instance.new("ScreenGui", player.PlayerGui)
 gui.Name = "DealtaV3"
@@ -57,8 +54,8 @@ Instance.new("UICorner", openBtn).CornerRadius = UDim.new(1,0)
 
 -- MAIN PANEL
 local main = Instance.new("Frame", gui)
-main.Size = UDim2.fromScale(0.32,0.62)
-main.Position = UDim2.fromScale(-0.4,0.2)
+main.Size = UDim2.fromScale(0.34,0.65)
+main.Position = UDim2.fromScale(-0.45,0.2)
 main.BorderSizePixel = 0
 main.Active = true
 main.Draggable = true
@@ -84,7 +81,19 @@ title.TextSize = 18
 title.TextColor3 = Color3.new(1,1,1)
 title.BackgroundTransparency = 1
 
-local layout = Instance.new("UIListLayout", main)
+--====================================
+-- SCROLL FRAME (FIX)
+--====================================
+local scroll = Instance.new("ScrollingFrame", main)
+scroll.Size = UDim2.new(1,0,0.9,0)
+scroll.Position = UDim2.new(0,0,0.1,0)
+scroll.CanvasSize = UDim2.new(0,0,0,0)
+scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+scroll.ScrollBarThickness = 6
+scroll.BackgroundTransparency = 1
+scroll.BorderSizePixel = 0
+
+local layout = Instance.new("UIListLayout", scroll)
 layout.Padding = UDim.new(0,8)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
@@ -92,8 +101,8 @@ layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 -- BUTTON MAKER
 --====================================
 local function makeBtn(text)
-	local b = Instance.new("TextButton", main)
-	b.Size = UDim2.new(0.9,0,0.08,0)
+	local b = Instance.new("TextButton", scroll)
+	b.Size = UDim2.new(0.9,0,0,36)
 	b.Text = text
 	b.Font = Enum.Font.Gotham
 	b.TextSize = 14
@@ -224,6 +233,6 @@ local open = false
 openBtn.MouseButton1Click:Connect(function()
 	open = not open
 	TweenService:Create(main,TweenInfo.new(0.4,Enum.EasingStyle.Quint),
-		{Position = open and UDim2.fromScale(0.05,0.2) or UDim2.fromScale(-0.4,0.2)}
+		{Position = open and UDim2.fromScale(0.05,0.2) or UDim2.fromScale(-0.45,0.2)}
 	):Play()
 end)
