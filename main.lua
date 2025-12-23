@@ -1,189 +1,195 @@
---=================================
--- Unified Legit Utility Hub
--- Mobile + PC | ONE SCRIPT
---=================================
+-- DEALTA HUB V3 (LEGIT)
+-- Gradient UI + FPS/Ping + Admin Check
 
--- Services
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
+local RS = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local TeleportService = game:GetService("TeleportService")
+local Stats = game:GetService("Stats")
 
-local LP = Players.LocalPlayer
-local Char = LP.Character or LP.CharacterAdded:Wait()
-local Hum = Char:WaitForChild("Humanoid")
-local HRP = Char:WaitForChild("HumanoidRootPart")
-local Cam = workspace.CurrentCamera
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hum = char:WaitForChild("Humanoid")
+local hrp = char:WaitForChild("HumanoidRootPart")
 
-LP.CharacterAdded:Connect(function(c)
-	Char = c
-	Hum = c:WaitForChild("Humanoid")
-	HRP = c:WaitForChild("HumanoidRootPart")
-end)
-
---================ SETTINGS =================
-local S = {
-	Master = true,
-
-	-- Fly
-	Fly = false,
-	FlySpeed = 60,
-
-	-- Items
-	BringItems = false,
-	SelectedItem = "Wood",
-	StackAmount = 10,
-
-	-- Auto Harvest
-	AutoHarvest = false,
-	HarvestDistance = 7,
-
-	-- ESP
-	ItemESP = false
+-- ===== ADMIN LIST =====
+local ADMINS = {
+	[player.UserId] = true -- replace with your UserId
 }
 
---================ ITEM CHECK =================
-local function isItem(obj)
-	return obj:IsA("Tool")
-		or (obj:IsA("Model") and obj:FindFirstChildWhichIsA("BasePart") and not obj:FindFirstChild("Humanoid"))
-end
+local isAdmin = ADMINS[player.UserId] or game.CreatorId == player.UserId
 
---================ FLY (MOBILE SAFE) =================
-local BV, BG
+-- ================= GUI =================
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+gui.Name = "DealtaV3"
+gui.ResetOnSpawn = false
 
-RunService.RenderStepped:Connect(function()
-	if not S.Master or not S.Fly or not HRP then
-		if BV then BV:Destroy() BV = nil end
-		if BG then BG:Destroy() BG = nil end
-		return
-	end
+-- OPEN BUTTON (MOBILE)
+local openBtn = Instance.new("TextButton", gui)
+openBtn.Size = UDim2.fromScale(0.12,0.08)
+openBtn.Position = UDim2.fromScale(0.85,0.75)
+openBtn.Text = "⚡"
+openBtn.Font = Enum.Font.GothamBold
+openBtn.TextSize = 26
+openBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+openBtn.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", openBtn).CornerRadius = UDim.new(1,0)
 
-	if not BV then
-		BV = Instance.new("BodyVelocity", HRP)
-		BV.MaxForce = Vector3.new(1e9,1e9,1e9)
+-- MAIN PANEL
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.fromScale(0.3,0.55)
+main.Position = UDim2.fromScale(-0.35,0.22)
+main.BorderSizePixel = 0
+main.Active = true
+main.Draggable = true
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,16)
 
-		BG = Instance.new("BodyGyro", HRP)
-		BG.MaxTorque = Vector3.new(1e9,1e9,1e9)
-	end
+-- GRADIENT
+local grad = Instance.new("UIGradient", main)
+grad.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(0,170,255)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(120,0,255))
+}
 
-	BG.CFrame = Cam.CFrame
-
-	if UIS.TouchEnabled or UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
-		BV.Velocity = Cam.CFrame.LookVector * S.FlySpeed
-	else
-		BV.Velocity = Vector3.zero
-	end
+RS.RenderStepped:Connect(function()
+	grad.Rotation += 0.1
 end)
 
---================ BRING ITEMS (STACKED) =================
-task.spawn(function()
-	while task.wait(0.4) do
-		if S.Master and S.BringItems and HRP then
-			local count = 0
-			for _, v in pairs(workspace:GetChildren()) do
-				if count >= S.StackAmount then break end
+-- TITLE
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(1,0,0.12,0)
+title.Text = "DEALTA HUB V3"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextColor3 = Color3.new(1,1,1)
+title.BackgroundTransparency = 1
 
-				if isItem(v) and v.Name:lower():find(S.SelectedItem:lower()) then
-					local part = v:IsA("Tool") and v:FindFirstChild("Handle")
-						or v:FindFirstChildWhichIsA("BasePart")
+local layout = Instance.new("UIListLayout", main)
+layout.Padding = UDim.new(0,10)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
-					if part then
-						count += 1
-						part.CFrame = HRP.CFrame * CFrame.new(math.random(-4,4),2,math.random(-4,4))
-					end
-				end
-			end
-		end
-	end
-end)
-
---================ AUTO HARVEST / CHOP =================
-task.spawn(function()
-	while task.wait(0.3) do
-		if S.Master and S.AutoHarvest and HRP then
-			for _, v in pairs(workspace:GetChildren()) do
-				if v:IsA("Model")
-					and v.Name:lower():find("tree")
-					and v:FindFirstChildWhichIsA("BasePart") then
-
-					local part = v:FindFirstChildWhichIsA("BasePart")
-					if (HRP.Position - part.Position).Magnitude <= S.HarvestDistance then
-						mouse1click()
-					end
-				end
-			end
-		end
-	end
-end)
-
---================ ITEM ESP ONLY =================
-local function addItemESP(item)
-	if item:FindFirstChild("ItemESP") then return end
-
-	local bb = Instance.new("BillboardGui", item)
-	bb.Name = "ItemESP"
-	bb.Size = UDim2.fromScale(4,1)
-	bb.StudsOffset = Vector3.new(0,2,0)
-	bb.AlwaysOnTop = true
-
-	local txt = Instance.new("TextLabel", bb)
-	txt.Size = UDim2.fromScale(1,1)
-	txt.BackgroundTransparency = 1
-	txt.TextColor3 = Color3.fromRGB(0,255,0)
-	txt.TextScaled = true
-	txt.Font = Enum.Font.SourceSansBold
-	txt.Text = item.Name
-end
-
-task.spawn(function()
-	while task.wait(1) do
-		if S.ItemESP then
-			for _, v in pairs(workspace:GetChildren()) do
-				if isItem(v) then
-					addItemESP(v)
-				end
-			end
-		end
-	end
-end)
-
---================ GUI (MOBILE FRIENDLY) =================
-local gui = Instance.new("ScreenGui", LP.PlayerGui)
-gui.Name = "UnifiedHub"
-
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.fromScale(0.26,0.75)
-frame.Position = UDim2.fromScale(0.03,0.12)
-frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
-
-local function btn(text, y, cb)
-	local b = Instance.new("TextButton", frame)
-	b.Size = UDim2.fromScale(0.9,0.08)
-	b.Position = UDim2.fromScale(0.05,y)
-	b.Text = text
-	b.BackgroundColor3 = Color3.fromRGB(40,40,40)
+-- ================= BUTTON MAKER =================
+local function makeBtn(text)
+	local b = Instance.new("TextButton")
+	b.Size = UDim2.new(0.9,0,0.085,0)
+	b.Text = text.." : OFF"
+	b.Font = Enum.Font.Gotham
+	b.TextSize = 14
 	b.TextColor3 = Color3.new(1,1,1)
-	b.MouseButton1Click:Connect(cb)
+	b.BackgroundColor3 = Color3.fromRGB(35,35,35)
+	b.AutoButtonColor = false
+	b.Parent = main
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0,10)
+	return b
 end
 
-btn("MASTER",0.02,function() S.Master = not S.Master end)
-btn("FLY",0.12,function() S.Fly = not S.Fly end)
-btn("Fly Speed +",0.22,function() S.FlySpeed += 10 end)
-btn("Fly Speed -",0.30,function() S.FlySpeed = math.max(20,S.FlySpeed-10) end)
+local flyBtn = makeBtn("Fly")
+local speedBtn = makeBtn("Speed")
+local jumpBtn = makeBtn("Jump")
+local fpsBtn = makeBtn("FPS / Ping")
 
-btn("Bring Items",0.40,function() S.BringItems = not S.BringItems end)
-btn("Stack +5",0.48,function() S.StackAmount += 5 end)
-btn("Stack -5",0.56,function() S.StackAmount = math.max(1,S.StackAmount-5) end)
+local resetBtn = makeBtn("Reset (Admin)")
+local healBtn = makeBtn("Heal (Admin)")
 
-btn("Select Wood",0.64,function() S.SelectedItem="Wood" end)
-btn("Select Sapling",0.72,function() S.SelectedItem="Sapling" end)
+-- ================= ANIMATION =================
+local function glow(btn,on)
+	TweenService:Create(btn,TweenInfo.new(0.25),
+		{BackgroundColor3 = on and Color3.fromRGB(0,170,255) or Color3.fromRGB(35,35,35)}
+	):Play()
+end
 
-btn("Auto Harvest",0.80,function() S.AutoHarvest = not S.AutoHarvest end)
-btn("Item ESP",0.88,function() S.ItemESP = not S.ItemESP end)
+-- ================= FEATURES =================
+-- Fly
+local flying = false
+local bv
+flyBtn.MouseButton1Click:Connect(function()
+	flying = not flying
+	flyBtn.Text = "Fly : "..(flying and "ON" or "OFF")
+	glow(flyBtn,flying)
 
--- Toggle UI
-UIS.InputBegan:Connect(function(i,g)
-	if not g and i.KeyCode == Enum.KeyCode.RightShift then
-		frame.Visible = not frame.Visible
+	if flying then
+		bv = Instance.new("BodyVelocity", hrp)
+		bv.MaxForce = Vector3.new(1e5,1e5,1e5)
+	else
+		if bv then bv:Destroy() end
+	end
+end)
+
+RS.RenderStepped:Connect(function()
+	if flying and bv then
+		bv.Velocity = workspace.CurrentCamera.CFrame.LookVector * 50
+	end
+end)
+
+-- Speed
+local speed = false
+speedBtn.MouseButton1Click:Connect(function()
+	speed = not speed
+	speedBtn.Text = "Speed : "..(speed and "ON" or "OFF")
+	glow(speedBtn,speed)
+	hum.WalkSpeed = speed and 32 or 16
+end)
+
+-- Jump
+local jump = false
+jumpBtn.MouseButton1Click:Connect(function()
+	jump = not jump
+	jumpBtn.Text = "Jump : "..(jump and "ON" or "OFF")
+	glow(jumpBtn,jump)
+	hum.JumpPower = jump and 85 or 50
+end)
+
+-- ================= FPS / PING OVERLAY =================
+local overlay = Instance.new("TextLabel", gui)
+overlay.Size = UDim2.fromScale(0.18,0.08)
+overlay.Position = UDim2.fromScale(0.4,0.05)
+overlay.BackgroundColor3 = Color3.fromRGB(20,20,20)
+overlay.TextColor3 = Color3.new(1,1,1)
+overlay.Font = Enum.Font.Gotham
+overlay.TextSize = 14
+overlay.Visible = false
+overlay.Active = true
+overlay.Draggable = true
+Instance.new("UICorner", overlay).CornerRadius = UDim.new(0,10)
+
+local showStats = false
+fpsBtn.MouseButton1Click:Connect(function()
+	showStats = not showStats
+	overlay.Visible = showStats
+	fpsBtn.Text = "FPS / Ping : "..(showStats and "ON" or "OFF")
+	glow(fpsBtn,showStats)
+end)
+
+RS.RenderStepped:Connect(function(dt)
+	if showStats then
+		local fps = math.floor(1/dt)
+		local ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+		overlay.Text = "FPS: "..fps.." | Ping: "..ping.." ms"
+	end
+end)
+
+-- ================= ADMIN TOOLS =================
+resetBtn.MouseButton1Click:Connect(function()
+	if isAdmin then hum.Health = 0 end
+end)
+
+healBtn.MouseButton1Click:Connect(function()
+	if isAdmin then hum.Health = hum.MaxHealth end
+end)
+
+-- ================= OPEN / CLOSE =================
+local open = false
+local function toggle()
+	open = not open
+	TweenService:Create(main,TweenInfo.new(0.4,Enum.EasingStyle.Quint),
+		{Position = open and UDim2.fromScale(0.05,0.22) or UDim2.fromScale(-0.35,0.22)}
+	):Play()
+end
+
+openBtn.MouseButton1Click:Connect(toggle)
+UIS.InputBegan:Connect(function(i,gp)
+	if not gp and i.KeyCode == Enum.KeyCode.RightShift then
+		toggle()
 	end
 end)
