@@ -29,7 +29,7 @@ local FlySpeed = 60
 local SpeedBoost = false
 local WalkSpeedValue = 32
 local JumpBoost = false
-local JumpPowerValue = 85
+local JumpPowerValue = 1000
 local ShowCoords = false
 
 -- SLOTS (9)
