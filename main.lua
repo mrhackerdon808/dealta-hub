@@ -146,7 +146,7 @@ btn("Fly : OFF", function(b)
 end)
 
 btn("Fly Speed +", function() FlySpeed += 10 end)
-btn("Fly Speed -", function() FlySpeed = math.max(20, FlySpeed-10) end)
+btn("Fly Speed -", function() FlySpeed = math.max(2000, FlySpeed-10) end)
 
 RunService.RenderStepped:Connect(function()
 	if Fly and HRP then
@@ -167,12 +167,12 @@ end)
 -- Speed & Jump
 btn("Speed Boost", function()
 	SpeedBoost = not SpeedBoost
-	Hum.WalkSpeed = SpeedBoost and WalkSpeedValue or 16
+	Hum.WalkSpeed = SpeedBoost and WalkSpeedValue or 50
 end)
 
 btn("Jump Boost", function()
 	JumpBoost = not JumpBoost
-	Hum.JumpPower = JumpBoost and JumpPowerValue or 50
+	Hum.JumpPower = JumpBoost and JumpPowerValue or 10
 end)
 
 -- TELEPORT BUTTONS
