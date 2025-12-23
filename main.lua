@@ -1,29 +1,29 @@
---==============================
--- DEALTA ALL IN ONE HUB (STABLE)
--- PC + MOBILE | ONE SCRIPT
---==============================
+--====================================
+-- DEALTA HUB V3 (OLD UI RESTORED)
+-- ALL IN ONE | PC + MOBILE
+--====================================
 
 -- SERVICES
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
+local RS = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
-local LP = Players.LocalPlayer
-local Char = LP.Character or LP.CharacterAdded:Wait()
-local Hum = Char:WaitForChild("Humanoid")
-local HRP = Char:WaitForChild("HumanoidRootPart")
-local Cam = workspace.CurrentCamera
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hum = char:WaitForChild("Humanoid")
+local hrp = char:WaitForChild("HumanoidRootPart")
+local cam = workspace.CurrentCamera
 
-LP.CharacterAdded:Connect(function(c)
-	Char = c
-	Hum = c:WaitForChild("Humanoid")
-	HRP = c:WaitForChild("HumanoidRootPart")
+player.CharacterAdded:Connect(function(c)
+	char = c
+	hum = c:WaitForChild("Humanoid")
+	hrp = c:WaitForChild("HumanoidRootPart")
 end)
 
---==============================
+--====================================
 -- SETTINGS
---==============================
+--====================================
 local S = {
 	Fly = false,
 	FlySpeed = 60,
@@ -34,157 +34,196 @@ local S = {
 	Jump = false,
 	JumpValue = 70,
 
-	SafeMode = true, -- anti-flag limits
-	SavedCords = {} -- slots 1-5
+	Saved = {}
 }
 
---==============================
--- SAFE CLAMPS
---==============================
-local function clamp()
-	if S.SafeMode then
-		S.FlySpeed = math.clamp(S.FlySpeed, 30, 120)
-		S.SpeedValue = math.clamp(S.SpeedValue, 16, 40)
-		S.JumpValue = math.clamp(S.JumpValue, 50, 90)
-	end
-end
+--====================================
+-- GUI (OLD STYLE)
+--====================================
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+gui.Name = "DealtaV3"
+gui.ResetOnSpawn = false
 
---==============================
--- GUI
---==============================
-local gui = Instance.new("ScreenGui", LP.PlayerGui)
-gui.Name = "DealtaAll"
+-- OPEN BUTTON
+local openBtn = Instance.new("TextButton", gui)
+openBtn.Size = UDim2.fromScale(0.12,0.08)
+openBtn.Position = UDim2.fromScale(0.85,0.75)
+openBtn.Text = "⚡"
+openBtn.Font = Enum.Font.GothamBold
+openBtn.TextSize = 26
+openBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+openBtn.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", openBtn).CornerRadius = UDim.new(1,0)
 
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.fromScale(0.28,0.75)
-frame.Position = UDim2.fromScale(0.04,0.12)
-frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
-frame.Active = true
-frame.Draggable = true
-Instance.new("UICorner", frame)
+-- MAIN PANEL
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.fromScale(0.32,0.62)
+main.Position = UDim2.fromScale(-0.4,0.2)
+main.BorderSizePixel = 0
+main.Active = true
+main.Draggable = true
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,16)
 
-local layout = Instance.new("UIListLayout", frame)
-layout.Padding = UDim.new(0,6)
+-- GRADIENT
+local grad = Instance.new("UIGradient", main)
+grad.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(0,170,255)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(120,0,255))
+}
 
-local function btn(text, cb)
-	local b = Instance.new("TextButton", frame)
-	b.Size = UDim2.new(1,-12,0,36)
+RS.RenderStepped:Connect(function()
+	grad.Rotation += 0.1
+end)
+
+-- TITLE
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(1,0,0.1,0)
+title.Text = "DEALTA HUB V3"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextColor3 = Color3.new(1,1,1)
+title.BackgroundTransparency = 1
+
+local layout = Instance.new("UIListLayout", main)
+layout.Padding = UDim.new(0,8)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+--====================================
+-- BUTTON MAKER
+--====================================
+local function makeBtn(text)
+	local b = Instance.new("TextButton", main)
+	b.Size = UDim2.new(0.9,0,0.08,0)
 	b.Text = text
-	b.BackgroundColor3 = Color3.fromRGB(40,40,40)
+	b.Font = Enum.Font.Gotham
+	b.TextSize = 14
 	b.TextColor3 = Color3.new(1,1,1)
-	Instance.new("UICorner", b)
-	b.MouseButton1Click:Connect(cb)
+	b.BackgroundColor3 = Color3.fromRGB(35,35,35)
+	b.AutoButtonColor = false
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0,10)
+	return b
 end
 
---==============================
--- FLY (WASD + MOBILE)
---==============================
-local BV, BG
-RunService.RenderStepped:Connect(function()
-	if not S.Fly or not HRP then
-		if BV then BV:Destroy() BV=nil end
-		if BG then BG:Destroy() BG=nil end
+--====================================
+-- BUTTONS
+--====================================
+local flyBtn = makeBtn("Fly : OFF")
+local flyP = makeBtn("Fly Speed +")
+local flyM = makeBtn("Fly Speed -")
+
+local speedBtn = makeBtn("Speed : OFF")
+local speedP = makeBtn("Speed +")
+local speedM = makeBtn("Speed -")
+
+local jumpBtn = makeBtn("Jump : OFF")
+
+local tpF = makeBtn("TP +10 Forward")
+local tpU = makeBtn("TP +10 Up")
+local tpD = makeBtn("TP -10 Down")
+
+local save1 = makeBtn("Save Slot 1")
+local tp1 = makeBtn("TP Slot 1")
+local save2 = makeBtn("Save Slot 2")
+local tp2 = makeBtn("TP Slot 2")
+local save3 = makeBtn("Save Slot 3")
+local tp3 = makeBtn("TP Slot 3")
+
+--====================================
+-- FLY
+--====================================
+local bv, bg
+RS.RenderStepped:Connect(function()
+	if not S.Fly then
+		if bv then bv:Destroy() bv=nil end
+		if bg then bg:Destroy() bg=nil end
 		return
 	end
 
-	clamp()
-
-	if not BV then
-		BV = Instance.new("BodyVelocity", HRP)
-		BV.MaxForce = Vector3.new(1e9,1e9,1e9)
-
-		BG = Instance.new("BodyGyro", HRP)
-		BG.MaxTorque = Vector3.new(1e9,1e9,1e9)
+	if not bv then
+		bv = Instance.new("BodyVelocity", hrp)
+		bv.MaxForce = Vector3.new(1e9,1e9,1e9)
+		bg = Instance.new("BodyGyro", hrp)
+		bg.MaxTorque = Vector3.new(1e9,1e9,1e9)
 	end
 
-	BG.CFrame = Cam.CFrame
+	bg.CFrame = cam.CFrame
 
 	local dir = Vector3.zero
-
-	if UIS:IsKeyDown(Enum.KeyCode.W) then dir += Cam.CFrame.LookVector end
-	if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= Cam.CFrame.LookVector end
-	if UIS:IsKeyDown(Enum.KeyCode.A) then dir -= Cam.CFrame.RightVector end
-	if UIS:IsKeyDown(Enum.KeyCode.D) then dir += Cam.CFrame.RightVector end
+	if UIS:IsKeyDown(Enum.KeyCode.W) then dir += cam.CFrame.LookVector end
+	if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= cam.CFrame.LookVector end
+	if UIS:IsKeyDown(Enum.KeyCode.A) then dir -= cam.CFrame.RightVector end
+	if UIS:IsKeyDown(Enum.KeyCode.D) then dir += cam.CFrame.RightVector end
 	if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
 	if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0,1,0) end
 
-	-- Mobile forward fly
 	if UIS.TouchEnabled and UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
-		dir = Cam.CFrame.LookVector
+		dir = cam.CFrame.LookVector
 	end
 
-	BV.Velocity = dir.Magnitude > 0 and dir.Unit * S.FlySpeed or Vector3.zero
+	bv.Velocity = dir.Magnitude > 0 and dir.Unit * S.FlySpeed or Vector3.zero
 end)
 
---==============================
+flyBtn.MouseButton1Click:Connect(function()
+	S.Fly = not S.Fly
+	flyBtn.Text = "Fly : "..(S.Fly and "ON" or "OFF")
+end)
+
+flyP.MouseButton1Click:Connect(function() S.FlySpeed += 10 end)
+flyM.MouseButton1Click:Connect(function() S.FlySpeed = math.max(20,S.FlySpeed-10) end)
+
+--====================================
 -- SPEED / JUMP
---==============================
-RunService.Heartbeat:Connect(function()
-	clamp()
-	Hum.WalkSpeed = S.Speed and S.SpeedValue or 16
-	Hum.JumpPower = S.Jump and S.JumpValue or 50
+--====================================
+speedBtn.MouseButton1Click:Connect(function()
+	S.Speed = not S.Speed
+	speedBtn.Text = "Speed : "..(S.Speed and "ON" or "OFF")
 end)
 
---==============================
--- TELEPORT FUNCTIONS
---==============================
-local function tpOffset(v)
-	if HRP then HRP.CFrame = HRP.CFrame + v end
-end
+speedP.MouseButton1Click:Connect(function() S.SpeedValue += 4 end)
+speedM.MouseButton1Click:Connect(function() S.SpeedValue = math.max(16,S.SpeedValue-4) end)
 
---==============================
--- SAVE / TELEPORT CORDS
---==============================
-local function saveSlot(slot)
-	if HRP then
-		S.SavedCords[slot] = HRP.CFrame
-	end
-end
-
-local function loadSlot(slot)
-	if S.SavedCords[slot] and HRP then
-		HRP.CFrame = S.SavedCords[slot]
-	end
-end
-
---==============================
--- BUTTONS
---==============================
-btn("Fly ON/OFF", function() S.Fly = not S.Fly end)
-btn("Fly Speed +", function() S.FlySpeed += 10 end)
-btn("Fly Speed -", function() S.FlySpeed -= 10 end)
-
-btn("Speed ON/OFF", function() S.Speed = not S.Speed end)
-btn("Speed +", function() S.SpeedValue += 4 end)
-btn("Speed -", function() S.SpeedValue -= 4 end)
-
-btn("Jump ON/OFF", function() S.Jump = not S.Jump end)
-
-btn("TP +10 Forward", function()
-	tpOffset(Cam.CFrame.LookVector * 10)
+jumpBtn.MouseButton1Click:Connect(function()
+	S.Jump = not S.Jump
+	jumpBtn.Text = "Jump : "..(S.Jump and "ON" or "OFF")
 end)
 
-btn("TP +10 Up", function() tpOffset(Vector3.new(0,10,0)) end)
-btn("TP -10 Down", function() tpOffset(Vector3.new(0,-10,0)) end)
-
-btn("Save Slot 1", function() saveSlot(1) end)
-btn("TP Slot 1", function() loadSlot(1) end)
-
-btn("Save Slot 2", function() saveSlot(2) end)
-btn("TP Slot 2", function() loadSlot(2) end)
-
-btn("Save Slot 3", function() saveSlot(3) end)
-btn("TP Slot 3", function() loadSlot(3) end)
-
-btn("Safe Mode ON/OFF", function()
-	S.SafeMode = not S.SafeMode
+RS.Heartbeat:Connect(function()
+	hum.WalkSpeed = S.Speed and S.SpeedValue or 16
+	hum.JumpPower = S.Jump and S.JumpValue or 50
 end)
 
---==============================
--- TOGGLE UI
---==============================
-UIS.InputBegan:Connect(function(i,g)
-	if not g and i.KeyCode == Enum.KeyCode.RightShift then
-		frame.Visible = not frame.Visible
-	end
+--====================================
+-- TELEPORT
+--====================================
+tpF.MouseButton1Click:Connect(function()
+	hrp.CFrame += cam.CFrame.LookVector * 10
+end)
+
+tpU.MouseButton1Click:Connect(function()
+	hrp.CFrame += Vector3.new(0,10,0)
+end)
+
+tpD.MouseButton1Click:Connect(function()
+	hrp.CFrame -= Vector3.new(0,10,0)
+end)
+
+local function save(slot) S.Saved[slot] = hrp.CFrame end
+local function load(slot) if S.Saved[slot] then hrp.CFrame = S.Saved[slot] end end
+
+save1.MouseButton1Click:Connect(function() save(1) end)
+tp1.MouseButton1Click:Connect(function() load(1) end)
+save2.MouseButton1Click:Connect(function() save(2) end)
+tp2.MouseButton1Click:Connect(function() load(2) end)
+save3.MouseButton1Click:Connect(function() save(3) end)
+tp3.MouseButton1Click:Connect(function() load(3) end)
+
+--====================================
+-- OPEN / CLOSE
+--====================================
+local open = false
+openBtn.MouseButton1Click:Connect(function()
+	open = not open
+	TweenService:Create(main,TweenInfo.new(0.4,Enum.EasingStyle.Quint),
+		{Position = open and UDim2.fromScale(0.05,0.2) or UDim2.fromScale(-0.4,0.2)}
+	):Play()
 end)
