@@ -1,218 +1,170 @@
---==============================
--- LEGIT PLAYER UTILITY HUB
--- ALL IN ONE | DELTA SAFE
--- Made by mrhackerdon
---==============================
+--==================================================
+-- PLAYER LOCK SYSTEM (MOBILE)
+-- Floating Button + Manual Lock + Save Target + ESP
+--==================================================
 
--- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
--- Player
 local LP = Players.LocalPlayer
-local Char, Hum, HRP
-local Cam = workspace.CurrentCamera
-
-local function setup(c)
-	Char = c
-	Hum = c:WaitForChild("Humanoid")
-	HRP = c:WaitForChild("HumanoidRootPart")
-end
-
-setup(LP.Character or LP.CharacterAdded:Wait())
-LP.CharacterAdded:Connect(setup)
+local Camera = workspace.CurrentCamera
 
 -- SETTINGS
-local MAX = 500
-local FlySpeed = 100
-local WalkSpeed = 32
+local LOCK = false
+local ESP_ENABLED = true
+local SMOOTH = 0.2
+local TARGET = nil
+local SAVED_TARGET_NAME = nil
 
--- STATES
-local Fly = false
-local Speed = false
-local NoClip = false
-local ShowCoords = false
-
--- SLOTS
-local Slots = {}
-for i=1,5 do Slots[i] = nil end
-
---==============================
--- COORD DISPLAY
---==============================
-local coordGui = Instance.new("ScreenGui", LP.PlayerGui)
-coordGui.ResetOnSpawn = false
-
-local coord = Instance.new("TextLabel", coordGui)
-coord.Size = UDim2.new(0.45,0,0.045,0)
-coord.Position = UDim2.new(0.275,0,0.02,0)
-coord.BackgroundColor3 = Color3.fromRGB(20,20,20)
-coord.TextColor3 = Color3.fromRGB(0,255,120)
-coord.Font = Enum.Font.GothamBold
-coord.TextSize = 13
-coord.BorderSizePixel = 0
-coord.Visible = false
-
-RunService.RenderStepped:Connect(function()
-	if ShowCoords and HRP then
-		local p = HRP.Position
-		coord.Text = string.format("X: %.1f | Y: %.1f | Z: %.1f", p.X, p.Y, p.Z)
-	end
-end)
-
---==============================
--- UI
---==============================
+--========================
+-- UI ROOT
+--========================
 local gui = Instance.new("ScreenGui", LP.PlayerGui)
 gui.ResetOnSpawn = false
 
-local openBtn = Instance.new("TextButton", gui)
-openBtn.Size = UDim2.new(0.1,0,0.07,0)
-openBtn.Position = UDim2.new(0.86,0,0.75,0)
-openBtn.Text = "⚙"
-openBtn.TextSize = 22
-openBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
-openBtn.TextColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", openBtn).CornerRadius = UDim.new(1,0)
+--========================
+-- FLOATING BUTTON
+--========================
+local floatBtn = Instance.new("TextButton", gui)
+floatBtn.Size = UDim2.fromScale(0.14, 0.08)
+floatBtn.Position = UDim2.fromScale(0.8, 0.4)
+floatBtn.Text = "LOCK"
+floatBtn.TextScaled = true
+floatBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+floatBtn.TextColor3 = Color3.new(1,1,1)
+floatBtn.Active = true
+floatBtn.Draggable = true
 
-local main = Instance.new("Frame", gui)
-main.Size = UDim2.new(0.28,0,0.6,0)
-main.Position = UDim2.new(-0.35,0,0.2,0)
-main.BackgroundColor3 = Color3.fromRGB(25,25,25)
-main.Active = true
-main.Draggable = true
-Instance.new("UICorner", main).CornerRadius = UDim.new(0,14)
+floatBtn.MouseButton1Click:Connect(function()
+	LOCK = not LOCK
+	floatBtn.Text = LOCK and "UNLOCK" or "LOCK"
+end)
 
-local title = Instance.new("TextLabel", main)
-title.Size = UDim2.new(1,0,0.08,0)
-title.Text = "UTILITY HUB"
-title.TextColor3 = Color3.new(1,1,1)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 16
+--========================
+-- PLAYER LIST PANEL
+--========================
+local panel = Instance.new("Frame", gui)
+panel.Size = UDim2.fromScale(0.3, 0.5)
+panel.Position = UDim2.fromScale(0.02, 0.25)
+panel.BackgroundColor3 = Color3.fromRGB(20,20,20)
+panel.BorderSizePixel = 0
+
+local layout = Instance.new("UIListLayout", panel)
+layout.Padding = UDim.new(0,5)
+
+local title = Instance.new("TextLabel", panel)
+title.Size = UDim2.new(1,0,0,35)
+title.Text = "PLAYERS (TAP TO LOCK)"
+title.TextScaled = true
 title.BackgroundTransparency = 1
+title.TextColor3 = Color3.new(1,1,1)
 
-local scroll = Instance.new("ScrollingFrame", main)
-scroll.Position = UDim2.new(0,0,0.08,0)
-scroll.Size = UDim2.new(1,0,0.92,0)
-scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-scroll.ScrollBarImageTransparency = 0.4
-scroll.BackgroundTransparency = 1
+--========================
+-- ESP TOGGLE BUTTON
+--========================
+local espBtn = Instance.new("TextButton", gui)
+espBtn.Size = UDim2.fromScale(0.18,0.07)
+espBtn.Position = UDim2.fromScale(0.55,0.85)
+espBtn.Text = "ESP : ON"
+espBtn.TextScaled = true
+espBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+espBtn.TextColor3 = Color3.new(1,1,1)
 
-local layout = Instance.new("UIListLayout", scroll)
-layout.Padding = UDim.new(0,6)
-layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-
-local function btn(text, cb)
-	local b = Instance.new("TextButton", scroll)
-	b.Size = UDim2.new(0.92,0,0.055,0)
-	b.Text = text
-	b.TextSize = 12
-	b.Font = Enum.Font.Gotham
-	b.TextColor3 = Color3.new(1,1,1)
-	b.BackgroundColor3 = Color3.fromRGB(45,45,45)
-	Instance.new("UICorner", b).CornerRadius = UDim.new(0,8)
-	b.MouseButton1Click:Connect(function() cb(b) end)
-	return b
-end
-
---==============================
--- FEATURES
---==============================
-
-btn("SHOW COORDS", function()
-	ShowCoords = not ShowCoords
-	coord.Visible = ShowCoords
+espBtn.MouseButton1Click:Connect(function()
+	ESP_ENABLED = not ESP_ENABLED
+	espBtn.Text = ESP_ENABLED and "ESP : ON" or "ESP : OFF"
 end)
 
--- FLY
-local bv,bg
-btn("FLY : OFF", function(b)
-	Fly = not Fly
-	b.Text = "FLY : "..(Fly and "ON" or "OFF")
-	if not Fly then
-		if bv then bv:Destroy() bv=nil end
-		if bg then bg:Destroy() bg=nil end
-	end
-end)
+--========================
+-- PLAYER LIST LOGIC
+--========================
+local buttons = {}
 
-btn("FLY SPEED +", function() FlySpeed = math.clamp(FlySpeed+10,0,MAX) end)
-btn("FLY SPEED -", function() FlySpeed = math.clamp(FlySpeed-10,0,MAX) end)
+local function refreshPlayers()
+	for _,b in pairs(buttons) do b:Destroy() end
+	buttons = {}
 
--- SPEED
-btn("SPEED : OFF", function(b)
-	Speed = not Speed
-	b.Text = "SPEED : "..(Speed and "ON" or "OFF")
-	Hum.WalkSpeed = Speed and WalkSpeed or 16
-end)
+	for _,plr in pairs(Players:GetPlayers()) do
+		if plr ~= LP then
+			local btn = Instance.new("TextButton", panel)
+			btn.Size = UDim2.new(1,-10,0,30)
+			btn.Text = plr.Name
+			btn.TextScaled = true
+			btn.BackgroundColor3 = Color3.fromRGB(35,35,35)
+			btn.TextColor3 = Color3.new(1,1,1)
 
--- NOCLIP
-btn("NOCLIP", function()
-	NoClip = not NoClip
-end)
+			btn.MouseButton1Click:Connect(function()
+				if plr.Character and plr.Character:FindFirstChild("Head") then
+					TARGET = plr.Character.Head
+					SAVED_TARGET_NAME = plr.Name -- (5) Save target
+					LOCK = true
+					floatBtn.Text = "UNLOCK"
+				end
+			end)
 
--- TELEPORT 10 STUDS (ANY DIRECTION)
-btn("TP +10 FRONT", function()
-	HRP.CFrame = HRP.CFrame + (Cam.CFrame.LookVector * 10)
-end)
-
-btn("TP -10 BACK", function()
-	HRP.CFrame = HRP.CFrame - (Cam.CFrame.LookVector * 10)
-end)
-
-btn("TP +10 LEFT", function()
-	HRP.CFrame = HRP.CFrame - (Cam.CFrame.RightVector * 10)
-end)
-
-btn("TP +10 RIGHT", function()
-	HRP.CFrame = HRP.CFrame + (Cam.CFrame.RightVector * 10)
-end)
-
-btn("TP +10 UP", function()
-	HRP.CFrame = HRP.CFrame + Vector3.new(0,10,0)
-end)
-
-btn("TP -10 DOWN", function()
-	HRP.CFrame = HRP.CFrame - Vector3.new(0,10,0)
-end)
-
--- SLOTS
-for i=1,5 do
-	btn("SAVE SLOT "..i, function()
-		Slots[i] = HRP.CFrame
-	end)
-	btn("TP SLOT "..i, function()
-		if Slots[i] then HRP.CFrame = Slots[i] end
-	end)
-end
-
--- UPDATE LOOP
-RunService.RenderStepped:Connect(function()
-	if Fly and HRP then
-		if not bv then
-			bv = Instance.new("BodyVelocity", HRP)
-			bv.MaxForce = Vector3.new(1e9,1e9,1e9)
-			bg = Instance.new("BodyGyro", HRP)
-			bg.MaxTorque = Vector3.new(1e9,1e9,1e9)
+			table.insert(buttons, btn)
 		end
-		bv.Velocity = Cam.CFrame.LookVector * FlySpeed
-		bg.CFrame = Cam.CFrame
+	end
+end
+
+Players.PlayerAdded:Connect(refreshPlayers)
+Players.PlayerRemoving:Connect(refreshPlayers)
+refreshPlayers()
+
+--========================
+-- RESTORE SAVED TARGET
+--========================
+local function restoreSavedTarget()
+	if not SAVED_TARGET_NAME then return end
+	for _,plr in pairs(Players:GetPlayers()) do
+		if plr.Name == SAVED_TARGET_NAME and plr.Character then
+			TARGET = plr.Character:FindFirstChild("Head")
+		end
+	end
+end
+
+LP.CharacterAdded:Connect(function()
+	task.wait(1)
+	restoreSavedTarget()
+end)
+
+--========================
+-- ESP BOX (2D)
+--========================
+local espBox = Drawing.new("Square")
+espBox.Thickness = 2
+espBox.Color = Color3.fromRGB(0,255,0)
+espBox.Filled = false
+espBox.Visible = false
+
+--========================
+-- MAIN LOOP
+--========================
+RunService.RenderStepped:Connect(function()
+	-- Camera lock
+	if LOCK and TARGET then
+		if TARGET.Parent and TARGET.Parent:FindFirstChild("Humanoid") then
+			local camPos = Camera.CFrame.Position
+			local look = CFrame.new(camPos, TARGET.Position)
+			Camera.CFrame = Camera.CFrame:Lerp(look, SMOOTH)
+		end
 	end
 
-	if NoClip and Char then
-		for _,v in ipairs(Char:GetDescendants()) do
-			if v:IsA("BasePart") then
-				v.CanCollide = false
+	-- ESP
+	if ESP_ENABLED and TARGET and TARGET.Parent then
+		local root = TARGET.Parent:FindFirstChild("HumanoidRootPart")
+		if root then
+			local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
+			if onScreen then
+				espBox.Size = Vector2.new(80,120)
+				espBox.Position = Vector2.new(pos.X-40, pos.Y-60)
+				espBox.Visible = true
+			else
+				espBox.Visible = false
 			end
 		end
+	else
+		espBox.Visible = false
 	end
-end)
-
--- OPEN / CLOSE
-local open=false
-openBtn.MouseButton1Click:Connect(function()
-	open = not open
-	TweenService:Create(main,TweenInfo.new(0.3),
-	{Position = open and UDim2.new(0.04,0,0.2,0) or UDim2.new(-0.35,0,0.2,0)}
-	):Play()
 end)
