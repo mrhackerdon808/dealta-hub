@@ -1,184 +1,233 @@
---==================================================
--- ALL IN ONE : MOBILE UI + CAMERA + ATTACK + ESP + NOCLIP
---==================================================
+--==============================
+-- LEGIT PLAYER UTILITY HUB V2
+-- ALL IN ONE | DELTA SAFE
+-- Updated by ChatGPT
+-- Original by mrhackerdon
+--==============================
 
--- SERVICES
+-- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
 
--- PLAYER
+-- Player
 local LP = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- STATES
-local CAM_LOCK = false
-local AUTO_ATTACK = false
-local ESP_ON = false
-local NOCLIP = false
-local UI_VISIBLE = true
+local Char, Hum, HRP
 
--- TARGET
-local TARGET_HEAD
-local TARGET_ROOT
-local TARGET_HUM
+local function setupChar(c)
+	Char = c
+	Hum = c:WaitForChild("Humanoid")
+	HRP = c:WaitForChild("HumanoidRootPart")
+end
+
+setupChar(LP.Character or LP.CharacterAdded:Wait())
+LP.CharacterAdded:Connect(setupChar)
 
 -- SETTINGS
-local ATTACK_RANGE = 8
-local SMOOTH = 0.25
-local COOLDOWN = 0.25
-local lastAttack = 0
+local MAX = 500
+local FlySpeed = 120
+local WalkSpeed = 32
 
---==================================================
--- MOBILE UI (SMALL)
---==================================================
+-- STATES
+local Fly = false
+local Speed = false
+local NoClip = false
+local ShowCoords = false
+
+-- SAVE SLOTS
+local Slots = {}
+for i = 1,5 do Slots[i] = nil end
+
+--==============================
+-- COORD GUI
+--==============================
+local coordGui = Instance.new("ScreenGui", LP.PlayerGui)
+coordGui.Name = "CoordGui"
+coordGui.ResetOnSpawn = false
+
+local coord = Instance.new("TextLabel", coordGui)
+coord.Size = UDim2.new(0.45,0,0.045,0)
+coord.Position = UDim2.new(0.275,0,0.02,0)
+coord.BackgroundColor3 = Color3.fromRGB(20,20,20)
+coord.TextColor3 = Color3.fromRGB(0,255,120)
+coord.Font = Enum.Font.GothamBold
+coord.TextSize = 13
+coord.BorderSizePixel = 0
+coord.Visible = false
+Instance.new("UICorner", coord).CornerRadius = UDim.new(0,8)
+
+RunService.RenderStepped:Connect(function()
+	if ShowCoords and HRP then
+		local p = HRP.Position
+		coord.Text = string.format("X: %.1f | Y: %.1f | Z: %.1f", p.X, p.Y, p.Z)
+	end
+end)
+
+--==============================
+-- UI
+--==============================
 local gui = Instance.new("ScreenGui", LP.PlayerGui)
+gui.Name = "UtilityHub"
 gui.ResetOnSpawn = false
 
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.fromScale(0.26,0.32)
-frame.Position = UDim2.fromScale(0.03,0.32)
-frame.BackgroundColor3 = Color3.fromRGB(18,18,18)
-frame.Active = true
-frame.Draggable = true
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0,10)
+local openBtn = Instance.new("TextButton", gui)
+openBtn.Size = UDim2.new(0.1,0,0.07,0)
+openBtn.Position = UDim2.new(0.86,0,0.75,0)
+openBtn.Text = "⚙"
+openBtn.TextSize = 22
+openBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+openBtn.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", openBtn).CornerRadius = UDim.new(1,0)
 
-local function makeBtn(text, y)
-	local b = Instance.new("TextButton", frame)
-	b.Size = UDim2.new(0.9,0,0.18,0)
-	b.Position = UDim2.new(0.05,0,y,0)
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0.28,0,0.6,0)
+main.Position = UDim2.new(-0.35,0,0.2,0)
+main.BackgroundColor3 = Color3.fromRGB(25,25,25)
+main.Active = true
+main.Draggable = true
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,14)
+
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(1,0,0.08,0)
+title.Text = "UTILITY HUB V2"
+title.TextColor3 = Color3.new(1,1,1)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.BackgroundTransparency = 1
+
+local scroll = Instance.new("ScrollingFrame", main)
+scroll.Position = UDim2.new(0,0,0.08,0)
+scroll.Size = UDim2.new(1,0,0.92,0)
+scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+scroll.ScrollBarImageTransparency = 0.4
+scroll.BackgroundTransparency = 1
+
+local layout = Instance.new("UIListLayout", scroll)
+layout.Padding = UDim.new(0,6)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+local function button(text, callback)
+	local b = Instance.new("TextButton", scroll)
+	b.Size = UDim2.new(0.92,0,0.055,0)
 	b.Text = text
-	b.TextScaled = true
-	b.Font = Enum.Font.GothamBold
-	b.BackgroundColor3 = Color3.fromRGB(45,45,45)
+	b.TextSize = 12
+	b.Font = Enum.Font.Gotham
 	b.TextColor3 = Color3.new(1,1,1)
+	b.BackgroundColor3 = Color3.fromRGB(45,45,45)
 	Instance.new("UICorner", b).CornerRadius = UDim.new(0,8)
+	b.MouseButton1Click:Connect(function()
+		callback(b)
+	end)
 	return b
 end
 
-local espBtn   = makeBtn("ESP : OFF",    0.04)
-local atkBtn   = makeBtn("ATTACK : OFF", 0.24)
-local camBtn   = makeBtn("CAMERA : OFF", 0.44)
-local nocBtn   = makeBtn("NOCLIP : OFF", 0.64)
-local hideBtn  = makeBtn("HIDE UI",      0.84)
+--==============================
+-- FEATURES
+--==============================
 
---==================================================
--- ESP
---==================================================
-local espBox
-local function updateESP()
-	if espBox then espBox:Destroy() espBox=nil end
-	if ESP_ON and TARGET_ROOT then
-		espBox = Instance.new("BoxHandleAdornment")
-		espBox.Adornee = TARGET_ROOT
-		espBox.Size = Vector3.new(4,6,2)
-		espBox.Color3 = Color3.fromRGB(0,255,0)
-		espBox.Transparency = 0.6
-		espBox.AlwaysOnTop = true
-		espBox.Parent = Camera
-	end
-end
+button("SHOW COORDS", function()
+	ShowCoords = not ShowCoords
+	coord.Visible = ShowCoords
+end)
 
---==================================================
--- GET CLOSEST TARGET
---==================================================
-local function getClosest()
-	local closest, dist = nil, math.huge
-	local char = LP.Character
-	local hrp = char and char:FindFirstChild("HumanoidRootPart")
-	if not hrp then return end
+-- SPEED
+button("SPEED : OFF", function(b)
+	Speed = not Speed
+	b.Text = "SPEED : "..(Speed and "ON" or "OFF")
+	Hum.WalkSpeed = Speed and WalkSpeed or 16
+end)
 
-	for _,p in pairs(Players:GetPlayers()) do
-		if p ~= LP and p.Character then
-			local h = p.Character:FindFirstChildOfClass("Humanoid")
-			local r = p.Character:FindFirstChild("HumanoidRootPart")
-			local hd = p.Character:FindFirstChild("Head")
-			if h and r and hd and h.Health > 0 then
-				local d = (hrp.Position - r.Position).Magnitude
-				if d < dist then
-					dist = d
-					closest = p
-				end
+-- NOCLIP
+button("NOCLIP : OFF", function(b)
+	NoClip = not NoClip
+	b.Text = "NOCLIP : "..(NoClip and "ON" or "OFF")
+	if not NoClip and Char then
+		for _,v in ipairs(Char:GetDescendants()) do
+			if v:IsA("BasePart") then
+				v.CanCollide = true
 			end
 		end
 	end
-	return closest
+end)
+
+-- FLY
+local bv, bg
+button("FLY : OFF", function(b)
+	Fly = not Fly
+	b.Text = "FLY : "..(Fly and "ON" or "OFF")
+
+	if not Fly then
+		if bv then bv:Destroy() bv = nil end
+		if bg then bg:Destroy() bg = nil end
+	end
+end)
+
+button("FLY SPEED +", function()
+	FlySpeed = math.clamp(FlySpeed + 20, 0, MAX)
+end)
+
+button("FLY SPEED -", function()
+	FlySpeed = math.clamp(FlySpeed - 20, 0, MAX)
+end)
+
+-- TELEPORT
+button("TP +10 FRONT", function()
+	HRP.CFrame += Camera.CFrame.LookVector * 10
+end)
+
+button("TP +10 UP", function()
+	HRP.CFrame += Vector3.new(0,10,0)
+end)
+
+-- SAVE SLOTS
+for i = 1,5 do
+	button("SAVE SLOT "..i, function()
+		Slots[i] = HRP.CFrame
+	end)
+
+	button("TP SLOT "..i, function()
+		if Slots[i] then
+			HRP.CFrame = Slots[i]
+		end
+	end)
 end
 
---==================================================
--- BUTTONS
---==================================================
-espBtn.MouseButton1Click:Connect(function()
-	ESP_ON = not ESP_ON
-	espBtn.Text = "ESP : "..(ESP_ON and "ON" or "OFF")
-	updateESP()
-end)
-
-atkBtn.MouseButton1Click:Connect(function()
-	AUTO_ATTACK = not AUTO_ATTACK
-	atkBtn.Text = "ATTACK : "..(AUTO_ATTACK and "ON" or "OFF")
-end)
-
-camBtn.MouseButton1Click:Connect(function()
-	CAM_LOCK = not CAM_LOCK
-	camBtn.Text = "CAMERA : "..(CAM_LOCK and "ON" or "OFF")
-end)
-
-nocBtn.MouseButton1Click:Connect(function()
-	NOCLIP = not NOCLIP
-	nocBtn.Text = "NOCLIP : "..(NOCLIP and "ON" or "OFF")
-end)
-
-hideBtn.MouseButton1Click:Connect(function()
-	UI_VISIBLE = not UI_VISIBLE
-	frame.Visible = UI_VISIBLE
-end)
-
---==================================================
+--==============================
 -- MAIN LOOP
---==================================================
+--==============================
 RunService.RenderStepped:Connect(function()
-	-- NOCLIP
-	if NOCLIP then
-		local char = LP.Character
-		if char then
-			for _,v in pairs(char:GetDescendants()) do
-				if v:IsA("BasePart") then
-					v.CanCollide = false
-				end
+	if Fly and HRP then
+		if not bv then
+			bv = Instance.new("BodyVelocity", HRP)
+			bv.MaxForce = Vector3.new(1e9,1e9,1e9)
+
+			bg = Instance.new("BodyGyro", HRP)
+			bg.MaxTorque = Vector3.new(1e9,1e9,1e9)
+		end
+
+		bv.Velocity = Camera.CFrame.LookVector * FlySpeed
+		bg.CFrame = Camera.CFrame
+	end
+
+	if NoClip and Char then
+		for _,v in ipairs(Char:GetDescendants()) do
+			if v:IsA("BasePart") then
+				v.CanCollide = false
 			end
 		end
 	end
+end)
 
-	-- TARGET
-	local target = getClosest()
-	if target and target.Character then
-		TARGET_HEAD = target.Character:FindFirstChild("Head")
-		TARGET_ROOT = target.Character:FindFirstChild("HumanoidRootPart")
-		TARGET_HUM  = target.Character:FindFirstChildOfClass("Humanoid")
-		updateESP()
-	end
-
-	-- CAMERA LOCK
-	if CAM_LOCK and TARGET_HEAD then
-		local camPos = Camera.CFrame.Position
-		Camera.CFrame = Camera.CFrame:Lerp(
-			CFrame.new(camPos, TARGET_HEAD.Position),
-			SMOOTH
-		)
-	end
-
-	-- AUTO ATTACK
-	if AUTO_ATTACK and TARGET_ROOT then
-		local char = LP.Character
-		local tool = char and char:FindFirstChildOfClass("Tool")
-		local hrp = char and char:FindFirstChild("HumanoidRootPart")
-		if tool and hrp then
-			if (hrp.Position - TARGET_ROOT.Position).Magnitude <= ATTACK_RANGE then
-				if tick() - lastAttack >= COOLDOWN then
-					lastAttack = tick()
-					tool:Activate()
-				end
-			end
-		end
-	end
+-- OPEN / CLOSE
+local open = false
+openBtn.MouseButton1Click:Connect(function()
+	open = not open
+	TweenService:Create(
+		main,
+		TweenInfo.new(0.3, Enum.EasingStyle.Quad),
+		{Position = open and UDim2.new(0.04,0,0.2,0) or UDim2.new(-0.35,0,0.2,0)}
+	):Play()
 end)
