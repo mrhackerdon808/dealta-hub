@@ -1,5 +1,5 @@
 --====================================
--- LONG LEGS AVATAR (DELTA SAFE)
+-- ULTRA BIG AVATAR (DELTA SAFE)
 -- By mrhackerdon
 --====================================
 
@@ -9,21 +9,12 @@ local RunService = game:GetService("RunService")
 local LP = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
-local Char, Hum
+local Char, Hum, HRP
 
 local function setup()
 	Char = LP.Character or LP.CharacterAdded:Wait()
 	Hum = Char:WaitForChild("Humanoid")
-
-	-- Fix camera (no shake)
-	Camera.CameraSubject = Hum
-	Camera.CameraType = Enum.CameraType.Custom
-
-	-- R15 required
-	if Hum.RigType ~= Enum.HumanoidRigType.R15 then
-		warn("R15 avatar required")
-		return
-	end
+	HRP = Char:WaitForChild("HumanoidRootPart")
 end
 
 setup()
@@ -32,22 +23,16 @@ LP.CharacterAdded:Connect(function()
 	setup()
 end)
 
--- 🔧 SETTINGS
-local LEG_SCALE = 3.5        -- increase for longer legs (max ~5)
-local CAMERA_OFFSET = 8      -- camera height
+-- 🔥 BIG SETTINGS
+local SIZE_MULTIPLIER = 3.5   -- BIGGER (try 4 or 5)
+local CAM_HEIGHT = 14         -- camera height boost
 
 RunService.RenderStepped:Connect(function()
-	if not Hum then return end
+	if not Char or not HRP or not Hum then return end
 
-	-- Long legs only
-	Hum.BodyHeightScale.Value = LEG_SCALE
-	Hum.BodyDepthScale.Value = 1
-	Hum.BodyWidthScale.Value = 1
-	Hum.HeadScale.Value = 1
+	-- Massive height feel
+	Hum.HipHeight = 2 * SIZE_MULTIPLIER
 
-	-- Balance body
-	Hum.HipHeight = LEG_SCALE * 1.4
-
-	-- Stable camera
-	Camera.CameraOffset = Vector3.new(0, CAMERA_OFFSET, 0)
+	-- Extra camera height
+	Camera.CFrame = Camera.CFrame + Vector3.new(0, CAM_HEIGHT * 0.02, 0)
 end)
