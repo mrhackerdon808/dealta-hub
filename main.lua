@@ -1,38 +1,218 @@
---====================================
--- ULTRA BIG AVATAR (DELTA SAFE)
--- By mrhackerdon
---====================================
+--==============================
+-- LEGIT PLAYER UTILITY HUB
+-- ALL IN ONE | DELTA SAFE
+-- Made by mrhackerdon
+--==============================
 
+-- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
+-- Player
 local LP = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
-
 local Char, Hum, HRP
+local Cam = workspace.CurrentCamera
 
-local function setup()
-	Char = LP.Character or LP.CharacterAdded:Wait()
-	Hum = Char:WaitForChild("Humanoid")
-	HRP = Char:WaitForChild("HumanoidRootPart")
+local function setup(c)
+	Char = c
+	Hum = c:WaitForChild("Humanoid")
+	HRP = c:WaitForChild("HumanoidRootPart")
 end
 
-setup()
-LP.CharacterAdded:Connect(function()
-	task.wait(1)
-	setup()
-end)
+setup(LP.Character or LP.CharacterAdded:Wait())
+LP.CharacterAdded:Connect(setup)
 
--- 🔥 BIG SETTINGS
-local SIZE_MULTIPLIER = 3.5   -- BIGGER (try 4 or 5)
-local CAM_HEIGHT = 14         -- camera height boost
+-- SETTINGS
+local MAX = 500
+local FlySpeed = 100
+local WalkSpeed = 32
+
+-- STATES
+local Fly = false
+local Speed = false
+local NoClip = false
+local ShowCoords = false
+
+-- SLOTS
+local Slots = {}
+for i=1,5 do Slots[i] = nil end
+
+--==============================
+-- COORD DISPLAY
+--==============================
+local coordGui = Instance.new("ScreenGui", LP.PlayerGui)
+coordGui.ResetOnSpawn = false
+
+local coord = Instance.new("TextLabel", coordGui)
+coord.Size = UDim2.new(0.45,0,0.045,0)
+coord.Position = UDim2.new(0.275,0,0.02,0)
+coord.BackgroundColor3 = Color3.fromRGB(20,20,20)
+coord.TextColor3 = Color3.fromRGB(0,255,120)
+coord.Font = Enum.Font.GothamBold
+coord.TextSize = 13
+coord.BorderSizePixel = 0
+coord.Visible = false
 
 RunService.RenderStepped:Connect(function()
-	if not Char or not HRP or not Hum then return end
+	if ShowCoords and HRP then
+		local p = HRP.Position
+		coord.Text = string.format("X: %.1f | Y: %.1f | Z: %.1f", p.X, p.Y, p.Z)
+	end
+end)
 
-	-- Massive height feel
-	Hum.HipHeight = 2 * SIZE_MULTIPLIER
+--==============================
+-- UI
+--==============================
+local gui = Instance.new("ScreenGui", LP.PlayerGui)
+gui.ResetOnSpawn = false
 
-	-- Extra camera height
-	Camera.CFrame = Camera.CFrame + Vector3.new(0, CAM_HEIGHT * 0.02, 0)
+local openBtn = Instance.new("TextButton", gui)
+openBtn.Size = UDim2.new(0.1,0,0.07,0)
+openBtn.Position = UDim2.new(0.86,0,0.75,0)
+openBtn.Text = "⚙"
+openBtn.TextSize = 22
+openBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+openBtn.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", openBtn).CornerRadius = UDim.new(1,0)
+
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0.28,0,0.6,0)
+main.Position = UDim2.new(-0.35,0,0.2,0)
+main.BackgroundColor3 = Color3.fromRGB(25,25,25)
+main.Active = true
+main.Draggable = true
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,14)
+
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(1,0,0.08,0)
+title.Text = "UTILITY HUB"
+title.TextColor3 = Color3.new(1,1,1)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.BackgroundTransparency = 1
+
+local scroll = Instance.new("ScrollingFrame", main)
+scroll.Position = UDim2.new(0,0,0.08,0)
+scroll.Size = UDim2.new(1,0,0.92,0)
+scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+scroll.ScrollBarImageTransparency = 0.4
+scroll.BackgroundTransparency = 1
+
+local layout = Instance.new("UIListLayout", scroll)
+layout.Padding = UDim.new(0,6)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+local function btn(text, cb)
+	local b = Instance.new("TextButton", scroll)
+	b.Size = UDim2.new(0.92,0,0.055,0)
+	b.Text = text
+	b.TextSize = 12
+	b.Font = Enum.Font.Gotham
+	b.TextColor3 = Color3.new(1,1,1)
+	b.BackgroundColor3 = Color3.fromRGB(45,45,45)
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0,8)
+	b.MouseButton1Click:Connect(function() cb(b) end)
+	return b
+end
+
+--==============================
+-- FEATURES
+--==============================
+
+btn("SHOW COORDS", function()
+	ShowCoords = not ShowCoords
+	coord.Visible = ShowCoords
+end)
+
+-- FLY
+local bv,bg
+btn("FLY : OFF", function(b)
+	Fly = not Fly
+	b.Text = "FLY : "..(Fly and "ON" or "OFF")
+	if not Fly then
+		if bv then bv:Destroy() bv=nil end
+		if bg then bg:Destroy() bg=nil end
+	end
+end)
+
+btn("FLY SPEED +", function() FlySpeed = math.clamp(FlySpeed+10,0,MAX) end)
+btn("FLY SPEED -", function() FlySpeed = math.clamp(FlySpeed-10,0,MAX) end)
+
+-- SPEED
+btn("SPEED : OFF", function(b)
+	Speed = not Speed
+	b.Text = "SPEED : "..(Speed and "ON" or "OFF")
+	Hum.WalkSpeed = Speed and WalkSpeed or 16
+end)
+
+-- NOCLIP
+btn("NOCLIP", function()
+	NoClip = not NoClip
+end)
+
+-- TELEPORT 10 STUDS (ANY DIRECTION)
+btn("TP +10 FRONT", function()
+	HRP.CFrame = HRP.CFrame + (Cam.CFrame.LookVector * 10)
+end)
+
+btn("TP -10 BACK", function()
+	HRP.CFrame = HRP.CFrame - (Cam.CFrame.LookVector * 10)
+end)
+
+btn("TP +10 LEFT", function()
+	HRP.CFrame = HRP.CFrame - (Cam.CFrame.RightVector * 10)
+end)
+
+btn("TP +10 RIGHT", function()
+	HRP.CFrame = HRP.CFrame + (Cam.CFrame.RightVector * 10)
+end)
+
+btn("TP +10 UP", function()
+	HRP.CFrame = HRP.CFrame + Vector3.new(0,10,0)
+end)
+
+btn("TP -10 DOWN", function()
+	HRP.CFrame = HRP.CFrame - Vector3.new(0,10,0)
+end)
+
+-- SLOTS
+for i=1,5 do
+	btn("SAVE SLOT "..i, function()
+		Slots[i] = HRP.CFrame
+	end)
+	btn("TP SLOT "..i, function()
+		if Slots[i] then HRP.CFrame = Slots[i] end
+	end)
+end
+
+-- UPDATE LOOP
+RunService.RenderStepped:Connect(function()
+	if Fly and HRP then
+		if not bv then
+			bv = Instance.new("BodyVelocity", HRP)
+			bv.MaxForce = Vector3.new(1e9,1e9,1e9)
+			bg = Instance.new("BodyGyro", HRP)
+			bg.MaxTorque = Vector3.new(1e9,1e9,1e9)
+		end
+		bv.Velocity = Cam.CFrame.LookVector * FlySpeed
+		bg.CFrame = Cam.CFrame
+	end
+
+	if NoClip and Char then
+		for _,v in ipairs(Char:GetDescendants()) do
+			if v:IsA("BasePart") then
+				v.CanCollide = false
+			end
+		end
+	end
+end)
+
+-- OPEN / CLOSE
+local open=false
+openBtn.MouseButton1Click:Connect(function()
+	open = not open
+	TweenService:Create(main,TweenInfo.new(0.3),
+	{Position = open and UDim2.new(0.04,0,0.2,0) or UDim2.new(-0.35,0,0.2,0)}
+	):Play()
 end)
